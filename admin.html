@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aphynix — Administration</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E0E11; --bg-elev:#18181C; --bg-elev2:#1F1F24; --bg-hover:#26262C;
+    --gold:#D4AF37; --gold-dim:#8C7A2E; --gold-bg:rgba(212,175,55,0.12);
+    --text:#F1F0EA; --text-sec:#98979E; --border:#2A2A30; --danger:#C0503F;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .ff-display{font-family:'Manrope',sans-serif;}
+  .ff-mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;text-decoration:none;}
+  input,select,textarea{font-family:'Inter',sans-serif;background:var(--bg-elev2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 9px;font-size:12.5px;}
+  button{cursor:pointer;font-family:'Inter',sans-serif;}
+  ::-webkit-scrollbar{width:8px;} ::-webkit-scrollbar-thumb{background:#2E2E33;border-radius:4px;}
+
+  .lock-card{width:300px;background:var(--bg-elev);border:1px solid var(--border);border-radius:14px;padding:24px;}
+  .btn-gold{background:var(--gold);color:#1A1305;border:none;border-radius:8px;padding:9px 0;font-size:13px;font-weight:700;width:100%;}
+
+  .panel{width:520px;max-height:600px;background:var(--bg-elev);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;}
+  .tabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;}
+  .tab{padding:10px 16px;font-size:12.5px;cursor:pointer;color:var(--text-sec);border-bottom:2px solid transparent;white-space:nowrap;}
+  .tab.active{color:var(--gold);border-bottom:2px solid var(--gold);}
+  .tab-body{padding:16px;overflow-y:auto;}
+  .row{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg-elev2);border-radius:8px;margin-bottom:8px;}
+  .avatar{width:28px;height:28px;border-radius:50%;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:11px;font-weight:700;}
+  .backlink{display:inline-block;margin-top:14px;color:var(--text-sec);font-size:12px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+function load(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } }
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function escapeHtml(str){ return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+const PASSWORD = "290942";
+let unlocked = false;
+let pwdError = false;
+
+let profile = load("aphynix_profile", null);
+let users = load("aphynix_users", []);
+let categories = load("aphynix_categories", []);
+let channels = load("aphynix_channels", []);
+let courses = load("aphynix_courses", []);
+
+let tab = "membres";
+let promoteTarget = "";
+let newCatName = "";
+let newChanName = "";
+let newChanCat = categories[0] ? categories[0].id : "";
+let newCourseTitle = "";
+
+function currentRole(){
+  const u = users.find(x => profile && x.email === profile.email);
+  return u ? u.role : "membre";
+}
+function isAdmin(){ return currentRole() === "admin"; }
+
+function render(){
+  const app = document.getElementById("app");
+  if(!unlocked){
+    app.innerHTML = `
+      <form class="lock-card" onsubmit="return submitPwd(event)">
+        <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;margin-bottom:14px;">&#128274; Acces admin</div>
+        <input class="full" style="width:100%;margin-bottom:10px;" type="password" id="pwdInput" placeholder="Mot de passe" oninput="pwdError=false">
+        ${pwdError ? '<div style="font-size:11.5px;color:var(--danger);margin-bottom:10px;">Mot de passe incorrect.</div>' : ''}
+        <button class="btn-gold" type="submit">Deverrouiller</button>
+        <a href="index.html" class="backlink">&larr; Retour au site</a>
+      </form>
+    `;
+    return;
+  }
+
+  const chByCat = (id) => channels.filter(c => c.categoryId === id);
+  const sousAdmins = users.filter(u => u.role === "sous-admin");
+  const promotable = users.filter(u => u.role === "membre");
+
+  let body = "";
+  if(tab === "membres"){
+    body = users.map(u => `
+      <div class="row">
+        <div class="avatar">${u.name.charAt(0).toUpperCase()}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;">${escapeHtml(u.name)}</div>
+          <div style="font-size:11px;color:var(--text-sec);">${u.statut === "muet" ? "En sourdine" : "Actif"}</div>
+        </div>
+        ${isAdmin() ? `<select onchange="setRole('${u.id}', this.value)">
+          <option value="membre" ${u.role==="membre"?"selected":""}>Membre</option>
+          <option value="sous-admin" ${u.role==="sous-admin"?"selected":""}>Sous-admin</option>
+          <option value="admin" ${u.role==="admin"?"selected":""}>Admin</option>
+        </select>` : `<span style="font-size:11px;color:var(--text-sec);">${u.role}</span>`}
+        <span style="cursor:pointer;color:${u.statut==='muet'?'var(--danger)':'var(--text-sec)'};" onclick="toggleMute('${u.id}')">&#128263;</span>
+        ${isAdmin() ? `<span style="cursor:pointer;color:var(--danger);" onclick="removeUser('${u.id}')">&#128465;</span>` : ''}
+      </div>
+    `).join("");
+  } else if(tab === "sousadmins"){
+    body = `
+      ${isAdmin() ? `<div style="font-size:11.5px;color:var(--text-sec);text-transform:uppercase;margin-bottom:6px;">Promouvoir un membre</div>
+      <div style="display:flex;gap:6px;margin-bottom:18px;">
+        <select id="promoteSelect" style="flex:1;">
+          <option value="">Choisir un membre</option>
+          ${promotable.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join("")}
+        </select>
+        <button onclick="promote()" style="background:var(--gold);border:none;border-radius:6px;padding:0 12px;">+</button>
+      </div>` : ''}
+      <div style="font-size:11.5px;color:var(--text-sec);text-transform:uppercase;margin-bottom:6px;">Equipe de moderation</div>
+      ${sousAdmins.length === 0 ? '<div style="font-size:12.5px;color:var(--text-sec);">Aucun sous-admin pour le moment.</div>' : ''}
+      ${sousAdmins.map(u => `
+        <div class="row">&#128081;<div style="flex:1;font-size:13px;">${escapeHtml(u.name)}</div>
+        ${isAdmin() ? `<button onclick="setRole('${u.id}','membre')" style="background:none;border:1px solid var(--border);color:var(--text-sec);border-radius:6px;padding:4px 8px;font-size:11px;">Retirer</button>` : ''}</div>
+      `).join("")}
+      <p style="font-size:11px;color:var(--text-sec);margin-top:14px;">Un sous-admin peut gerer les membres et supprimer des messages. Il ne peut ni creer/supprimer de canal, ni exclure un membre.</p>
+    `;
+  } else if(tab === "canaux" && isAdmin()){
+    body = `
+      <div style="font-size:11.5px;color:var(--text-sec);text-transform:uppercase;margin-bottom:6px;">Nouvelle categorie</div>
+      <div style="display:flex;gap:6px;margin-bottom:18px;">
+        <input id="newCatInput" style="flex:1;" placeholder="Nom de la categorie">
+        <button onclick="addCategory()" style="background:var(--gold);border:none;border-radius:6px;padding:0 12px;">+</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--text-sec);text-transform:uppercase;margin-bottom:6px;">Nouveau canal</div>
+      <div style="display:flex;gap:6px;margin-bottom:18px;">
+        <input id="newChanInput" style="flex:1;" placeholder="nom-du-canal">
+        <select id="newChanCatSelect">${categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("")}</select>
+        <button onclick="addChannel()" style="background:var(--gold);border:none;border-radius:6px;padding:0 12px;">+</button>
+      </div>
+      ${categories.map(cat => `
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">&#128193; <span style="font-size:12px;font-weight:700;">${escapeHtml(cat.name)}</span>
+          <span style="cursor:pointer;color:var(--danger);margin-left:auto;" onclick="removeCategory('${cat.id}')">&#128465;</span></div>
+          ${chByCat(cat.id).map(ch => `
+            <div style="display:flex;align-items:center;gap:6px;padding:4px 8px 4px 20px;font-size:12.5px;color:var(--text-sec);">
+              # ${escapeHtml(ch.name)} <span style="cursor:pointer;color:var(--danger);margin-left:auto;" onclick="removeChannel('${ch.id}')">&#128465;</span>
+            </div>
+          `).join("")}
+        </div>
+      `).join("")}
+    `;
+  } else if(tab === "formations" && isAdmin()){
+    body = `
+      <div style="display:flex;gap:6px;margin-bottom:14px;">
+        <input id="newCourseInput" style="flex:1;" placeholder="Titre de la video">
+        <button onclick="addCourse()" style="background:var(--gold);border:none;border-radius:6px;padding:0 12px;">+</button>
+      </div>
+      ${courses.map(c => `
+        <div class="row">&#9654;<span style="flex:1;font-size:12.5px;">${escapeHtml(c.title)}</span>
+        <span style="cursor:pointer;color:var(--danger);" onclick="removeCourse('${c.id}')">&#128465;</span></div>
+      `).join("")}
+    `;
+  }
+
+  const tabsList = [["membres","Membres"],["sousadmins","Sous-admins"]];
+  if(isAdmin()) tabsList.push(["canaux","Canaux"],["formations","Formations"]);
+
+  app.innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <div>&#128737; Administration</div>
+        <a href="index.html" style="color:var(--text-sec);">&times;</a>
+      </div>
+      <div class="tabs">
+        ${tabsList.map(([id,label]) => `<div class="tab ${tab===id?'active':''}" onclick="setTab('${id}')">${label}</div>`).join("")}
+      </div>
+      <div class="tab-body">${body}</div>
+    </div>
+  `;
+}
+
+function submitPwd(e){
+  e.preventDefault();
+  const v = document.getElementById("pwdInput").value;
+  if(v === PASSWORD){ unlocked = true; pwdError = false; }
+  else { pwdError = true; }
+  render();
+  return false;
+}
+function setTab(t){ tab = t; render(); }
+function setRole(id, r){ users = users.map(u => u.id===id ? {...u, role:r} : u); save("aphynix_users", users); render(); }
+function toggleMute(id){ users = users.map(u => u.id===id ? {...u, statut: u.statut==="muet"?"actif":"muet"} : u); save("aphynix_users", users); render(); }
+function removeUser(id){ users = users.filter(u => u.id!==id); save("aphynix_users", users); render(); }
+function promote(){ const id = document.getElementById("promoteSelect").value; if(id) setRole(id, "sous-admin"); }
+function addCategory(){ const v = document.getElementById("newCatInput").value.trim(); if(!v) return; categories.push({id:uid(), name:v}); save("aphynix_categories", categories); render(); }
+function removeCategory(id){ categories = categories.filter(c => c.id!==id); channels = channels.filter(c => c.categoryId!==id); save("aphynix_categories", categories); save("aphynix_channels", channels); render(); }
+function addChannel(){ const v = document.getElementById("newChanInput").value.trim(); const cat = document.getElementById("newChanCatSelect").value; if(!v) return; channels.push({id:uid(), name:v.toLowerCase().replace(/\s+/g,"-"), categoryId:cat}); save("aphynix_channels", channels); render(); }
+function removeChannel(id){ channels = channels.filter(c => c.id!==id); save("aphynix_channels", channels); render(); }
+function addCourse(){ const v = document.getElementById("newCourseInput").value.trim(); if(!v) return; courses.push({id:uid(), title:v, description:"", duree:"", videoName:"", links:[]}); save("aphynix_courses", courses); render(); }
+function removeCourse(id){ courses = courses.filter(c => c.id!==id); save("aphynix_courses", courses); render(); }
+
+render();
+</script>
+</body>
+</html>

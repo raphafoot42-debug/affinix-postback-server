@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aphynix</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E0E11; --bg-elev:#18181C; --bg-elev2:#1F1F24; --bg-hover:#26262C;
+    --gold:#D4AF37; --gold-dim:#8C7A2E; --gold-bg:rgba(212,175,55,0.12);
+    --text:#F1F0EA; --text-sec:#98979E; --border:#2A2A30; --danger:#C0503F;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;}
+  .ff-display{font-family:'Manrope',sans-serif;}
+  .ff-mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;text-decoration:none;}
+  input,textarea,select{font-family:'Inter',sans-serif;background:var(--bg-elev2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px 10px;font-size:13px;}
+  button{cursor:pointer;font-family:'Inter',sans-serif;}
+  ::-webkit-scrollbar{width:8px;} ::-webkit-scrollbar-thumb{background:#2E2E33;border-radius:4px;}
+
+  #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .card{background:var(--bg-elev);border:1px solid var(--border);border-radius:16px;padding:36px;width:380px;}
+  .logo{width:42px;height:42px;border-radius:10px;background:var(--gold-bg);border:1px solid var(--gold-dim);display:flex;align-items:center;justify-content:center;margin-bottom:18px;color:var(--gold);font-weight:800;font-size:19px;}
+  .field-label{font-size:11px;color:var(--text-sec);text-transform:uppercase;letter-spacing:0.6px;}
+  .full{width:100%;}
+  .btn-gold{background:var(--gold);color:#1A1305;border:none;border-radius:8px;padding:12px 0;font-size:14px;font-weight:700;}
+
+  #app{display:flex;height:100vh;overflow:hidden;}
+  .navbar{width:66px;background:#0A0A0C;display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:10px;flex-shrink:0;}
+  .nav-icon{width:42px;height:42px;border-radius:12px;background:var(--bg-elev);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;}
+  .nav-icon.active{background:var(--gold-bg);color:var(--gold);}
+
+  .sidebar{width:200px;background:var(--bg-elev);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+  .sidebar-head{padding:16px 14px 10px;font-size:13px;font-weight:700;border-bottom:1px solid var(--border);}
+  .cat-title{display:flex;align-items:center;gap:4px;padding:4px 6px;cursor:pointer;color:var(--text-sec);font-size:11px;font-weight:700;text-transform:uppercase;}
+  .chan{display:flex;align-items:center;gap:6px;padding:6px 8px;margin-left:6px;border-radius:6px;cursor:pointer;color:var(--text-sec);font-size:13.5px;border-left:2px solid transparent;}
+  .chan.active{background:var(--bg-hover);color:var(--text);border-left:2px solid var(--gold);}
+
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;}
+  .chan-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-weight:700;font-size:14.5px;}
+  .messages{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px;}
+  .msg{display:flex;gap:10px;}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--bg-elev2);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:12px;flex-shrink:0;}
+  .msg-input{padding:16px;border-top:1px solid var(--border);display:flex;gap:8px;}
+  .msg-input input{flex:1;}
+  .send-btn{background:var(--gold);border:none;border-radius:8px;padding:0 16px;}
+
+  .formations-page{padding:28px;overflow-y:auto;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(150px,1fr));gap:14px;}
+  .course-card{background:var(--bg-elev);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;}
+  .course-thumb{height:90px;background:var(--bg-elev2);display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--gold);}
+
+  .corner{position:absolute;bottom:14px;right:16px;display:flex;align-items:center;gap:10px;}
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-sec);background:var(--bg-elev);padding:5px 9px;border-radius:6px;border:1px solid var(--border);}
+  .gear{width:38px;height:38px;border-radius:10px;background:var(--bg-elev);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--gold);}
+
+  .modal-back{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:20;}
+  .modal{width:320px;background:var(--bg-elev);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+</style>
+</head>
+<body>
+
+<div id="login" style="display:none;">
+  <form class="card" id="registerForm">
+    <div class="logo">A</div>
+    <h1 class="ff-display" style="font-size:24px;font-weight:800;margin:0 0 6px;">Aphynix</h1>
+    <p style="color:var(--text-sec);font-size:14px;margin:0 0 28px;">Formation et communaute affiliation casino. Rejoignez le serveur.</p>
+    <div class="field-label">Nom / pseudo</div>
+    <input class="full" id="regName" placeholder="Votre pseudo" style="margin:6px 0 18px;">
+    <div class="field-label">Email</div>
+    <input class="full" id="regEmail" type="email" placeholder="vous@exemple.fr" style="margin:6px 0 24px;">
+    <button class="btn-gold full" type="submit">Rejoindre Aphynix</button>
+    <p style="font-size:11.5px;color:var(--text-sec);margin-top:14px;">Le premier inscrit devient administrateur principal.</p>
+  </form>
+</div>
+
+<div id="app" style="display:none;"></div>
+
+<script>
+// ---------- stockage ----------
+function load(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } }
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+const DEFAULT_CATEGORIES = [
+  {id:"cat-general", name:"General"},
+  {id:"cat-affiliation", name:"Affiliation casino"},
+  {id:"cat-entraide", name:"Entraide"},
+  {id:"cat-detente", name:"Off-topic"},
+];
+const DEFAULT_CHANNELS = [
+  {id:"annonces", name:"annonces", categoryId:"cat-general"},
+  {id:"presentation", name:"presentation", categoryId:"cat-general"},
+  {id:"strategies", name:"strategies", categoryId:"cat-affiliation"},
+  {id:"outils-trackers", name:"outils-trackers", categoryId:"cat-affiliation"},
+  {id:"questions", name:"questions", categoryId:"cat-entraide"},
+  {id:"detente", name:"detente", categoryId:"cat-detente"},
+];
+const DEFAULT_COURSES = [
+  {id:"c1", title:"Bienvenue sur Aphynix", description:"Comment fonctionne la formation et la communaute.", duree:"20 min", videoName:"", links:[]},
+  {id:"c2", title:"Les bases de l'affiliation casino", description:"Vocabulaire, fonctionnement des programmes, premiers pas.", duree:"1h", videoName:"", links:[]},
+];
+
+let profile = load("aphynix_profile", null);
+let users = load("aphynix_users", []);
+let categories = load("aphynix_categories", DEFAULT_CATEGORIES);
+let channels = load("aphynix_channels", DEFAULT_CHANNELS);
+let courses = load("aphynix_courses", DEFAULT_COURSES);
+let messages = load("aphynix_messages", {});
+let inviteCode = load("aphynix_invite", uid());
+save("aphynix_invite", inviteCode);
+let serverDescription = load("aphynix_description", "Communaute et formation dediee a l'affiliation casino. Entraide, strategies et ressources pour progresser ensemble.");
+
+let view = "discussion";
+let activeChannel = "annonces";
+let selectedCourseId = null;
+let showInvite = false;
+let collapsedCats = {};
+
+// ---------- inscription ----------
+document.getElementById("registerForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  const name = document.getElementById("regName").value.trim();
+  const email = document.getElementById("regEmail").value.trim();
+  if(!name || !email) return;
+  const isFirst = users.length === 0;
+  const user = {id:uid(), name, email, role: isFirst ? "admin" : "membre", statut:"actif"};
+  users.push(user); save("aphynix_users", users);
+  profile = {name, email}; save("aphynix_profile", profile);
+  save("aphynix_categories", categories);
+  save("aphynix_channels", channels);
+  save("aphynix_courses", courses);
+  renderRoot();
+});
+
+function currentUser(){ return users.find(u => profile && u.email === profile.email); }
+function role(){ return currentUser() ? currentUser().role : "membre"; }
+function isAdmin(){ return role() === "admin"; }
+function isModo(){ return role() === "admin" || role() === "sous-admin"; }
+function isMuted(){ const u = currentUser(); return u && u.statut === "muet"; }
+
+// ---------- rendu ----------
+function renderRoot(){
+  if(!profile){
+    document.getElementById("login").style.display = "flex";
+    document.getElementById("app").style.display = "none";
+    return;
+  }
+  document.getElementById("login").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+  renderApp();
+}
+
+function chByCat(catId){ return channels.filter(c => c.categoryId === catId); }
+
+function renderApp(){
+  const app = document.getElementById("app");
+  const activeChan = channels.find(c => c.id === activeChannel);
+
+  let sidebarHtml = "";
+  if(view === "discussion"){
+    sidebarHtml = `<div class="sidebar">
+      <div class="sidebar-head">Aphynix</div>
+      <div style="flex:1;overflow-y:auto;padding:10px 8px;">
+        ${categories.map(cat => `
+          <div style="margin-bottom:6px;">
+            <div class="cat-title" onclick="toggleCat('${cat.id}')">${collapsedCats[cat.id] ? '▸' : '▾'} ${cat.name}</div>
+            ${collapsedCats[cat.id] ? '' : chByCat(cat.id).map(ch => `
+              <div class="chan ${ch.id===activeChannel?'active':''}" onclick="setChannel('${ch.id}')">#&nbsp;${ch.name}</div>
+            `).join("")}
+          </div>
+        `).join("")}
+      </div>
+    </div>`;
+  }
+
+  let mainHtml = "";
+  if(view === "discussion"){
+    const list = messages[activeChannel] || [];
+    mainHtml = `
+      <div class="chan-header">#&nbsp;${activeChan ? activeChan.name : ""}
+        <span style="margin-left:auto;cursor:pointer;color:var(--text-sec);" onclick="toggleInvite()">&#8943;</span>
+      </div>
+      <div class="messages">
+        ${list.length === 0 ? '<div style="color:var(--text-sec);font-size:13px;">Aucun message. Lancez la discussion.</div>' : ''}
+        ${list.map(m => `
+          <div class="msg">
+            <div class="avatar">${m.author.charAt(0).toUpperCase()}</div>
+            <div>
+              <div style="display:flex;gap:8px;align-items:baseline;">
+                <span style="font-weight:700;font-size:13.5px;">${escapeHtml(m.author)}</span>
+                ${m.role && m.role!=="membre" ? `<span style="font-size:9.5px;font-weight:700;color:var(--gold);background:var(--gold-bg);padding:1px 6px;border-radius:4px;text-transform:uppercase;">${m.role}</span>` : ''}
+              </div>
+              <div style="font-size:13.5px;color:#DAD9D3;margin-top:2px;">${escapeHtml(m.text)}</div>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+      <div class="msg-input">
+        ${isMuted() ? '<div style="font-size:12.5px;color:var(--danger);">Vous etes en sourdine.</div>' :
+        `<input id="msgInput" placeholder="Message dans #${activeChan ? activeChan.name : ''}" onkeydown="if(event.key==='Enter') sendMessage()">
+         <button class="send-btn" onclick="sendMessage()">Envoyer</button>`}
+      </div>
+    `;
+  } else if(view === "formations"){
+    if(selectedCourseId){
+      const c = courses.find(x => x.id === selectedCourseId);
+      mainHtml = `<div class="formations-page">
+        <div style="cursor:pointer;color:var(--text-sec);font-size:12.5px;margin-bottom:16px;" onclick="selectedCourseId=null;renderApp();">&larr; Retour aux formations</div>
+        <div style="background:var(--bg-elev);border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:480px;">
+          <div style="aspect-ratio:16/9;background:var(--bg-elev2);display:flex;align-items:center;justify-content:center;font-size:44px;color:var(--gold);">&#9654;</div>
+          <div style="padding:18px;">
+            <div class="ff-display" style="font-size:17px;font-weight:800;">${escapeHtml(c.title)}</div>
+            ${c.duree ? `<div class="ff-mono" style="font-size:11px;color:var(--text-sec);margin-top:4px;">${escapeHtml(c.duree)}</div>` : ''}
+            <div style="font-size:13.5px;color:#DAD9D3;margin-top:10px;line-height:1.5;">${escapeHtml(c.description||"")}</div>
+            ${(c.links&&c.links.length) ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:14px;">
+              ${c.links.map(l => `<a href="${escapeHtml(l.url)}" target="_blank" style="display:flex;align-items:center;gap:8px;background:var(--bg-elev2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--gold);font-size:12.5px;">&#128279; ${escapeHtml(l.label)}</a>`).join("")}
+            </div>` : ''}
+          </div>
+        </div>
+      </div>`;
+    } else {
+      mainHtml = `<div class="formations-page">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h2 class="ff-display" style="font-size:21px;font-weight:800;margin:0;">Formations</h2>
+          ${isAdmin() ? `<button onclick="toggleAddCourse()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;color:var(--text);">+ Ajouter une video</button>` : ''}
+        </div>
+        <div id="addCourseForm"></div>
+        <div class="grid">
+          ${courses.map(c => `
+            <div class="course-card" onclick="selectedCourseId='${c.id}';renderApp();">
+              <div class="course-thumb">&#9654;</div>
+              <div style="padding:12px;">
+                <div style="font-size:13.5px;font-weight:700;margin-bottom:4px;">${escapeHtml(c.title)}</div>
+                ${c.duree ? `<div class="ff-mono" style="font-size:10.5px;color:var(--text-sec);">${escapeHtml(c.duree)}</div>` : ''}
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>`;
+    }
+  }
+
+  app.innerHTML = `
+    <div class="navbar">
+      <div class="logo" style="width:42px;height:42px;">A</div>
+      <div style="width:28px;height:1px;background:var(--border);margin:4px 0;"></div>
+      <div class="nav-icon ${view==='discussion'?'active':''}" onclick="setView('discussion')">&#128172;</div>
+      <div class="nav-icon ${view==='formations'?'active':''}" onclick="setView('formations')">&#127891;</div>
+    </div>
+    ${sidebarHtml}
+    <div class="main">
+      ${mainHtml}
+      <div class="corner">
+        <div class="badge">${escapeHtml(profile.name)} - ${role()}</div>
+        ${isModo() ? `<a href="admin.html" class="gear" title="Administration">&#9881;</a>` : ''}
+      </div>
+    </div>
+    ${showInvite ? renderInviteModal() : ''}
+  `;
+}
+
+function renderInviteModal(){
+  return `<div class="modal-back" onclick="if(event.target===this){toggleInvite();}">
+    <div class="modal">
+      <div style="height:56px;background:linear-gradient(135deg, var(--gold-bg), var(--bg-elev2));display:flex;align-items:flex-end;padding:0 16px 10px;">
+        <div class="ff-display" style="font-weight:800;font-size:14px;">Aphynix</div>
+      </div>
+      <div style="padding:16px;">
+        <div style="font-size:10.5px;color:var(--text-sec);text-transform:uppercase;margin-bottom:6px;">A propos</div>
+        <div style="font-size:12.5px;color:#DAD9D3;line-height:1.5;margin-bottom:16px;">${escapeHtml(serverDescription)}</div>
+        <div style="font-size:10.5px;color:var(--text-sec);text-transform:uppercase;margin-bottom:6px;">Regles</div>
+        <div style="font-size:12px;color:#DAD9D3;margin-bottom:3px;"><span style="color:var(--gold);">1.</span> Respect entre membres.</div>
+        <div style="font-size:12px;color:#DAD9D3;margin-bottom:16px;"><span style="color:var(--gold);">2.</span> Pas de spam ni pub sauvage.</div>
+        <div style="font-size:10.5px;color:var(--text-sec);text-transform:uppercase;margin-bottom:6px;">Inviter des membres</div>
+        <div class="ff-mono" style="font-size:11px;color:var(--text-sec);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 9px;margin-bottom:8px;">aphynix.app/invite/${inviteCode}</div>
+        <button class="btn-gold full" onclick="copyInvite()">Copier le lien</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleCat(id){ collapsedCats[id] = !collapsedCats[id]; renderApp(); }
+function setChannel(id){ activeChannel = id; renderApp(); }
+function setView(v){ view = v; selectedCourseId = null; renderApp(); }
+function toggleInvite(){ showInvite = !showInvite; renderApp(); }
+function copyInvite(){ navigator.clipboard && navigator.clipboard.writeText(`aphynix.app/invite/${inviteCode}`); alert("Lien copie !"); }
+
+function sendMessage(){
+  const input = document.getElementById("msgInput");
+  if(!input || !input.value.trim()) return;
+  const msg = {id:uid(), author:profile.name, role:role(), text:input.value.trim(), ts:Date.now()};
+  if(!messages[activeChannel]) messages[activeChannel] = [];
+  messages[activeChannel].push(msg);
+  save("aphynix_messages", messages);
+  renderApp();
+}
+
+function toggleAddCourse(){
+  const el = document.getElementById("addCourseForm");
+  if(el.innerHTML){ el.innerHTML = ""; return; }
+  el.innerHTML = `
+    <div style="background:var(--bg-elev);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:18px;">
+      <input class="full" id="newTitle" placeholder="Titre" style="margin-bottom:8px;">
+      <textarea class="full" id="newDesc" placeholder="Description" rows="2" style="margin-bottom:8px;"></textarea>
+      <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:8px;border:1px dashed var(--border);border-radius:6px;font-size:12.5px;color:var(--text-sec);cursor:pointer;">
+        &#8593; <span id="videoFileName">Importer un fichier video</span>
+        <input type="file" accept="video/*" style="display:none;" onchange="document.getElementById('videoFileName').textContent=this.files[0]?this.files[0].name:'Importer un fichier video';">
+      </label>
+      <input class="full" id="newDuree" placeholder="Duree (ex: 12 min)" style="margin-bottom:10px;">
+      <div style="font-size:11px;color:var(--text-sec);text-transform:uppercase;margin-bottom:6px;">Liens (facultatif)</div>
+      <div id="linkRows"></div>
+      <button type="button" onclick="addLinkRow()" style="background:none;border:1px solid var(--border);color:var(--text-sec);border-radius:6px;padding:5px 10px;font-size:11.5px;margin-bottom:12px;">+ Ajouter un lien</button>
+      <div><button class="btn-gold" onclick="publishCourse()" style="padding:8px 14px;">Publier</button></div>
+    </div>
+  `;
+  addLinkRow();
+}
+function addLinkRow(){
+  const wrap = document.getElementById("linkRows");
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:6px;margin-bottom:6px;";
+  row.innerHTML = `<input placeholder="Intitule" class="link-label" style="width:38%;">
+    <input placeholder="https://..." class="link-url" style="flex:1;">
+    <span style="cursor:pointer;color:var(--danger);align-self:center;" onclick="this.parentElement.remove()">&times;</span>`;
+  wrap.appendChild(row);
+}
+function publishCourse(){
+  const title = document.getElementById("newTitle").value.trim();
+  if(!title) return;
+  const desc = document.getElementById("newDesc").value.trim();
+  const duree = document.getElementById("newDuree").value.trim();
+  const videoName = document.getElementById("videoFileName").textContent;
+  const links = Array.from(document.querySelectorAll("#linkRows > div")).map(row => {
+    const label = row.querySelector(".link-label").value.trim();
+    const url = row.querySelector(".link-url").value.trim();
+    return (label || url) ? {id:uid(), label: label || url, url} : null;
+  }).filter(Boolean);
+  courses.push({id:uid(), title, description:desc, duree, videoName: videoName==="Importer un fichier video" ? "" : videoName, links});
+  save("aphynix_courses", courses);
+  document.getElementById("addCourseForm").innerHTML = "";
+  renderApp();
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+renderRoot();
+</script>
+</body>
+</html>
